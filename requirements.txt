@@ -1,8 +1,9 @@
+openai==1.76.0
+Requests==2.32.5
+scikit_learn==1.7.2
+tiktoken==0.9.0
+torch==2.6.0
+tqdm==4.67.1
+transformers==4.51.3
 datasets
-transformers
-torch
-tiktoken
-openai
-scikit-learn
-tqdm
-requests
+vllm==0.8.4
