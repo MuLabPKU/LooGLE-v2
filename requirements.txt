@@ -1,0 +1,8 @@
+datasets
+transformers
+torch
+tiktoken
+openai
+scikit-learn
+tqdm
+requests
