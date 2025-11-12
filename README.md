@@ -3,6 +3,7 @@
 # 🔍 LooGLE v2
 
 **The official repository of "LooGLE v2: Are LLMs Ready for Real World Long Dependency Challenges?"**
+
 *NeurIPS DB Track 2025*
 
 <div>
@@ -46,6 +47,7 @@ pip install -r requirements.txt
 
 # Install Flash Attention
 pip install flash-attn==2.6.3 --no-build-isolation
+
 # Or you can download flash_attn-2.6.3-cp310-cp310-linux_x86_64.whl
 pip install flash_attn-2.6.3-cp310-cp310-linux_x86_64.whl
 ```
