@@ -178,7 +178,12 @@ Prediction outputs are saved in JSONL format:
 If you use LooGLE v2 in your research, please cite:
 
 ```bibtex
-
+@article{he2025loogle,
+  title={LooGLE v2: Are LLMs Ready for Real World Long Dependency Challenges?},
+  author={He, Ziyuan and Wang, Yuxuan and Li, Jiaqi and Liang, Kexin and Zhang, Muhan},
+  journal={arXiv preprint arXiv:2510.22548},
+  year={2025}
+}
 ```
 
 ---
