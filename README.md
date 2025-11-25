@@ -61,7 +61,7 @@ Download the LooGLE v2 dataset from Hugging Face:
 ```bash
 git clone https://huggingface.co/datasets/MuLabPKU/LooGLE-v2 ./datasets/LooGLE-v2
 # Or use the Hugging Face CLI to download:
-hf download MuLabPKU/LooGLE-v2 --path ./datasets/LooGLE-v2
+hf download MuLabPKU/LooGLE-v2   --repo-type dataset  --local-dir ./datasets/LooGLE-v2
 ```
 
 
