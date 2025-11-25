@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LooGLE v2: A comprehensive benchmark for Long Dependency Challenges in LLMs. NeurIPS 2025 DB Track.">
+    <title>LooGLE v2 | Long Dependency Benchmark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0d11;
+            --card-bg: #161b22;
+            --card-border: #30363d;
+            --primary: #58a6ff;
+            --primary-dim: rgba(88, 166, 255, 0.15);
+            --text-main: #c9d1d9;
+            --text-bright: #f0f6fc;
+            --accent-gradient: linear-gradient(135deg, #1f6feb 0%, #238636 100%);
+            --code-bg: #0d1117;
+            --rank-gold: #e2b714;
+            --rank-silver: #a0a6b5;
+            --rank-bronze: #cd7f32;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 顶部导航 */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(13, 17, 23, 0.8);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links { display: flex; gap: 0.8rem; }
+
+        .btn-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-main);
+        }
+        .btn-badge:hover {
+            border-color: var(--primary);
+            color: var(--text-bright);
+            transform: translateY(-1px);
+        }
+
+        /* Hero 区域 */
+        .hero {
+            padding: 6rem 1.5rem 4rem;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .neurips-tag {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: rgba(210, 168, 255, 0.1);
+            border: 1px solid rgba(210, 168, 255, 0.2);
+            color: #d2a8ff;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--text-bright);
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: #8b949e;
+            margin-bottom: 2rem;
+        }
+        
+        .badge-container {
+            display: flex; 
+            justify-content: center; 
+            gap: 0.5rem; 
+            flex-wrap: wrap;
+        }
+        
+        .badge-container a {
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        
+        .badge-container a:hover { opacity: 0.8; }
+
+        /* 布局网格 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem 4rem;
+        }
+
+        /* Domain Grid */
+        .domain-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 4rem;
+            text-align: center;
+        }
+        .domain-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        .domain-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+        .domain-name { font-weight: 600; color: var(--text-bright); }
+
+        /* --- Leaderboard Styles --- */
+        .leaderboard-section { margin-bottom: 5rem; }
+        
+        .lb-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .lb-tabs {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+        }
+        
+        .lb-tab-btn {
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .lb-tab-btn.active {
+            background: var(--primary-dim);
+            color: var(--primary);
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            min-height: 200px;
+        }
+
+        .lb-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .lb-table th {
+            text-align: left;
+            padding: 1rem 1.5rem;
+            color: #8b949e;
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        .lb-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .lb-table tr:last-child td { border-bottom: none; }
+        .lb-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .rank-cell { font-weight: bold; width: 60px; text-align: center; }
+        .rank-1 { color: var(--rank-gold); font-size: 1.1em; }
+        .rank-2 { color: var(--rank-silver); font-size: 1.1em; }
+        .rank-3 { color: var(--rank-bronze); font-size: 1.1em; }
+
+        .model-cell { font-weight: 600; color: var(--text-bright); }
+        .score-cell { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+        .main-score { color: var(--primary); font-size: 1.05rem; }
+
+        /* --- Usage & Install Styles --- */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .card h3 { color: var(--text-bright); margin-bottom: 1rem; font-size: 1.2rem; }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+
+        .code-block {
+            position: relative;
+            background: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            white-space: pre-wrap;
+            margin: 0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: var(--text-bright);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover { background: var(--primary); }
+
+        /* Usage Tabs */
+        .tab-container { margin-top: 1rem; }
+        .tabs { display: flex; gap: 2px; margin-bottom: -1px; }
+        .tab-btn {
+            padding: 0.6rem 1.2rem;
+            background: var(--bg-color);
+            border: 1px solid var(--card-border);
+            border-bottom: none;
+            color: #8b949e;
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary);
+            border-bottom: 1px solid var(--card-bg);
+        }
+        .tab-content {
+            display: none;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            border-radius: 0 6px 6px 6px;
+        }
+        .tab-content.active { display: block; }
+        
+        /* Footer Links */
+        footer a {
+            color: var(--text-main);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        footer a:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .domain-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-2 { grid-template-columns: 1fr; }
+            .lb-table { display: block; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                🔍 LooGLE v2
+            </a>
+            <nav class="nav-links">
+                <a href="https://huggingface.co/datasets/MuLabPKU/LooGLE-v2" target="_blank" rel="noopener noreferrer" class="btn-badge">🤗 Dataset</a>
+                <a href="https://arxiv.org/abs/2510.22548" target="_blank" rel="noopener noreferrer" class="btn-badge">📄 Paper</a>
+                <a href="https://github.com/MuLabPKU/LooGLE-v2" target="_blank" rel="noopener noreferrer" class="btn-badge">★ GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="neurips-tag">NeurIPS DB Track 2025</div>
+        <h1>Are LLMs Ready for <br>Real World <span style="color: var(--primary);">Long Dependency</span> Challenges?</h1>
+        <p>A comprehensive benchmark across Finance, Law, Code, and Game domains.</p>
+        
+        <div class="badge-container">
+             <a href="https://huggingface.co/datasets/MuLabPKU/LooGLE-v2" target="_blank" rel="noopener noreferrer">
+                <img src="https://img.shields.io/badge/🤗-Dataset-blue" alt="Dataset">
+             </a>
+             <a href="https://mulabpku.github.io/LooGLE-v2/" target="_blank" rel="noopener noreferrer">
+                <img src="https://img.shields.io/badge/🌐-Website-green" alt="Website">
+             </a>
+             <a href="https://arxiv.org/abs/2510.22548" target="_blank" rel="noopener noreferrer">
+                <img src="https://img.shields.io/badge/📄-Paper-red" alt="Paper">
+             </a>
+             <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">
+                <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+             </a>
+        </div>
+    </section>
+
+    <main class="container">
+        
+        <div class="domain-grid">
+            <div class="domain-item">
+                <span class="domain-icon">💰</span>
+                <span class="domain-name">Finance</span>
+            </div>
+            <div class="domain-item">
+                <span class="domain-icon">⚖️</span>
+                <span class="domain-name">Law</span>
+            </div>
+            <div class="domain-item">
+                <span class="domain-icon">💻</span>
+                <span class="domain-name">Code</span>
+            </div>
+            <div class="domain-item">
+                <span class="domain-icon">🎮</span>
+                <span class="domain-name">Game</span>
+            </div>
+        </div>
+
+        <section class="leaderboard-section">
+            <div class="lb-header">
+                <h2 style="color: var(--text-bright); font-size: 1.5rem;">🏆 Leaderboard</h2>
+                <div class="lb-tabs">
+                    <button class="lb-tab-btn active" onclick="loadLeaderboard('closed', this)">Closed Source</button>
+                    <button class="lb-tab-btn" onclick="loadLeaderboard('open', this)">Open Source</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="lb-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">Rank</th>
+                            <th>Model</th>
+                            <th class="score-cell">Overall</th>
+                            <th class="score-cell">Finance</th>
+                            <th class="score-cell">Law</th>
+                            <th class="score-cell">Code</th>
+                            <th class="score-cell">Game</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lb-body">
+                        <tr><td colspan="7" style="text-align:center; padding: 2rem;">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>📦 Installation</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre>conda create -n loogle-v2 python=3.10
+conda activate loogle-v2
+pip install -r requirements.txt
+
+# Flash Attention
+pip install flash-attn==2.6.3 --no-build-isolation</pre>
+                </div>
+            </div>
+            <div class="card">
+                <h3>📊 Dataset</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre># Clone from Hugging Face
+git clone https://huggingface.co/datasets/MuLabPKU/LooGLE-v2 ./datasets/LooGLE-v2
+
+# Or using HF CLI
+hf download MuLabPKU/LooGLE-v2 --path ./datasets/LooGLE-v2</pre>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="color: var(--text-bright); margin-bottom: 1.5rem;">🛠️ Usage Workflow</h2>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="code-header"><span>1. Configuration (config/models.jsonl)</span></div>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre>{
+  "name": "your-model-name",
+  "model": "path/to/model",
+  "max_len": 131072,
+  "base_url": "http://localhost:8000/v1",
+  "api_key": "your-api-key"
+}</pre>
+                </div>
+            </div>
+            <div class="card">
+                <div class="code-header"><span>2. (Optional) Pre-compute RAG Contexts</span></div>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                    <pre>python rag_preprocess.py \
+  --input_path ./datasets/LooGLE-v2 \
+  --split test \
+  --output_path ./datasets/LooGLE-v2/test_rag.jsonl \
+  --embedding_model THUDM/LongCite-glm4-9b \
+  --devices 0,1</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3>3. Running Predictions</h3>
+            <p style="color: #8b949e; margin-bottom: 1rem; font-size: 0.9rem;">Choose your preferred inference method:</p>
+            
+            <div class="tab-container">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="openTab(event, 'vllm')">Option A: vLLM Server</button>
+                    <button class="tab-btn" onclick="openTab(event, 'transformers')">Option B: Transformers</button>
+                </div>
+
+                <div id="vllm" class="tab-content active">
+                    <div class="code-header"><span>Launch vLLM server first:</span></div>
+                    <div class="code-block" style="margin-bottom: 1rem;">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <pre>python -m vllm.entrypoints.openai.api_server \
+  --model path/to/your/model \
+  --port 8000 \
+  --max-model-len 131072</pre>
+                    </div>
+                    <div class="code-header"><span>Then run prediction:</span></div>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <pre>python predict.py \
+  --model your-model-name \
+  --data_dir ./datasets/LooGLE-v2 \
+  --save_dir ./results \
+  --max_new_tokens 512</pre>
+                    </div>
+                </div>
+
+                <div id="transformers" class="tab-content">
+                    <div class="code-header"><span>Run local inference:</span></div>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <pre>python predict_transformers.py \
+  --model your-model-name \
+  --data_dir ./datasets/LooGLE-v2 \
+  --save_dir ./results \
+  --max_new_tokens 512 \
+  --load_in_4bit  # Optional quantization</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 3rem;">
+            <h3>📈 Evaluation</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                <pre># Evaluate single file
+python evaluate.py --input_path ./results/your-model-name.jsonl
+
+# Batch evaluation
+python evaluate.py --input_path ./results --batch --output_json summary.json</pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📖 Citation</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                <pre>@article{he2025loogle,
+  title={LooGLE v2: Are LLMs Ready for Real World Long Dependency Challenges?},
+  author={He, Ziyuan and Wang, Yuxuan and Li, Jiaqi and Liang, Kexin and Zhang, Muhan},
+  journal={arXiv preprint arXiv:2510.22548},
+  year={2025}
+}</pre>
+            </div>
+        </div>
+
+    </main>
+
+    <footer style="text-align: center; padding: 3rem 0; color: #484f58; border-top: 1px solid var(--card-border); font-size: 0.9rem;">
+        <p>
+            Maintained by <a href="https://mulabpku.com/" target="_blank" rel="noopener noreferrer">LooGLE v2 Team</a> 
+            (<a href="https://github.com/MuLabPKU" target="_blank" rel="noopener noreferrer">GitHub</a>)
+            @ Peking University & BIGAI
+        </p>
+    </footer>
+
+    <script>
+        // --- 1. LEADERBOARD LOGIC (Fetch from JSON) ---
+        let leaderboardData = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fetch external JSON file
+            fetch('leaderboard.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("HTTP error " + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    leaderboardData = data;
+                    // Find the default active button (first one) to set state
+                    const defaultBtn = document.querySelector('.lb-tab-btn');
+                    loadLeaderboard('closed', defaultBtn);
+                })
+                .catch(error => {
+                    console.error('Error loading leaderboard data:', error);
+                    document.getElementById('lb-body').innerHTML = 
+                        `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: #ff6b6b;">
+                            Error loading data. Please run on a local server (e.g., python -m http.server) to avoid CORS issues.
+                        </td></tr>`;
+                });
+        });
+
+        function loadLeaderboard(type, btnElement) {
+            // Update active button style
+            if (btnElement) {
+                document.querySelectorAll('.lb-tab-btn').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+
+            const tbody = document.getElementById('lb-body');
+            tbody.innerHTML = ''; // Clear existing
+
+            if (!leaderboardData[type]) return;
+
+            const data = leaderboardData[type];
+            // Sort by overall score desc
+            data.sort((a, b) => b.overall - a.overall);
+
+            data.forEach((item, index) => {
+                const rank = index + 1;
+                let rankClass = '';
+                let rankIcon = rank;
+                
+                if (rank === 1) { rankClass = 'rank-1'; rankIcon = '🥇'; }
+                else if (rank === 2) { rankClass = 'rank-2'; rankIcon = '🥈'; }
+                else if (rank === 3) { rankClass = 'rank-3'; rankIcon = '🥉'; }
+
+                const row = `
+                    <tr>
+                        <td class="rank-cell ${rankClass}">${rankIcon}</td>
+                        <td class="model-cell">${item.model}</td>
+                        <td class="score-cell main-score">${item.overall.toFixed(1)}</td>
+                        <td class="score-cell" style="opacity:0.8">${item.finance.toFixed(1)}</td>
+                        <td class="score-cell" style="opacity:0.8">${item.law.toFixed(1)}</td>
+                        <td class="score-cell" style="opacity:0.8">${item.code.toFixed(1)}</td>
+                        <td class="score-cell" style="opacity:0.8">${item.game.toFixed(1)}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+
+        // --- 2. USAGE TAB LOGIC ---
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.className += " active";
+        }
+
+        // --- 3. COPY CODE LOGIC ---
+        function copyToClipboard(button) {
+            const pre = button.nextElementSibling;
+            const text = pre.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.innerText;
+                button.innerText = 'Copied!';
+                button.style.background = '#238636';
+                button.style.color = '#ffffff';
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.style.background = '';
+                    button.style.color = '';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

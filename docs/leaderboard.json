@@ -1,0 +1,16 @@
+{
+  "closed": [
+    { "model": "GPT-4.1", "overall": 59.20, "finance": 70.75, "law": 76.60, "code": 44.59, "game": 51.09 },
+    { "model": "GPT-o3-mini", "overall": 43.23, "finance": 57.00, "law": 44.59, "code": 33.36, "game": 42.38 },
+    { "model": "DeepSeek-R1", "overall": 41.85, "finance": 48.25, "law": 49.01, "code": 34.03, "game": 39.27 },
+    { "model": "DeepSeek-V3", "overall": 36.71, "finance": 41.50, "law": 45.25, "code": 28.29, "game": 34.85 }
+  ],
+  "open": [
+    { "model": "Qwen2.5-7B-Instruct-1M", "overall": 28.97, "finance": 42.25, "law": 19.20, "code": 21.45, "game": 35.78 },
+    { "model": "GLM-4-9B-Chat", "overall": 25.81, "finance": 30.25, "law": 33.55, "code": 23.65, "game": 17.82 },
+    { "model": "Llama-3.1-8B-Instruct", "overall": 24.16, "finance": 35.00, "law": 19.24, "code": 26.26, "game": 17.62 },
+    { "model": "Phi-3-Med-128K", "overall": 16.09, "finance": 23.50, "law": 6.40, "code": 18.08, "game": 16.63 },
+    { "model": "Mistral-7B-v0.2-Instruct", "overall": 11.88, "finance": 8.25, "law": 6.11, "code": 18.96, "game": 11.88 },
+    { "model": "Yarn-Mistral-7B-128K", "overall": 3.26, "finance": 7.75, "law": 0.00, "code": 1.29, "game": 4.89 }
+  ]
+}
