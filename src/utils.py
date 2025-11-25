@@ -28,17 +28,31 @@ def truncate_prompt(prompt, tokenizer, model, max_len):
         return tokenizer.decode(input_ids, skip_special_tokens=True)
 
 
-def format_prompt(data, tokenizer, model, max_len, with_context):
+def format_prompt(data, tokenizer, model, max_len, with_context, use_cot=False, use_rag=False, rag_topk=5):
     if not with_context:
         data["context"] = "I would not provide you with the context. Please choose the most likely option based on your knowledge and intuition."
 
+    context = data["context"]
+    if use_rag and "context_rag" in data:
+        context = " ".join(data["context_rag"][:rag_topk])
+
     prompt = data["instruction"].format(
-        context=data["context"],
+        context=context,
         options=data["options"],
         question=data["question"]
     )
 
+    if use_cot:
+        removed_part = prompt.split("The correct answer is")[-1]
+        prompt = prompt.replace(removed_part, " Let's think step by step.")
+        truncated_prompt = truncate_prompt(prompt, tokenizer, model, max_len)
+        return truncated_prompt, removed_part
+
     return truncate_prompt(prompt, tokenizer, model, max_len)
+
+
+def format_cot_second_prompt(first_response, removed_part):
+    return first_response.strip() + removed_part
 
 
 def load_model_config(config_path, model_name):

@@ -1,3 +1,4 @@
+import os
 import json
 import argparse
 from collections import defaultdict
@@ -77,26 +78,71 @@ def print_results(statistics):
     print("="*80 + "\n")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="LooGLE-v2 Evaluation Script")
-    parser.add_argument("--input_path", type=str, required=True,
-                       help="Path to prediction result file (jsonl)")
-    parser.add_argument("--output_json", type=str, default=None,
-                       help="Optional: save results to JSON file")
+def evaluate_single_file(input_path, output_json=None):
+    print(f"Evaluating: {input_path}")
 
-    args = parser.parse_args()
-
-    print(f"Evaluating: {args.input_path}")
-
-    analyzer = ResultAnalyzer(args.input_path)
+    analyzer = ResultAnalyzer(input_path)
     statistics = analyzer.analyze()
 
     print_results(statistics)
 
-    if args.output_json:
-        with open(args.output_json, 'w', encoding='utf-8') as f:
+    if output_json:
+        with open(output_json, 'w', encoding='utf-8') as f:
             json.dump(statistics, f, ensure_ascii=False, indent=2)
-        print(f"Results saved to {args.output_json}")
+        print(f"Results saved to {output_json}")
+
+    return statistics
+
+
+def evaluate_batch(folder_path, output_summary=None):
+    all_results = {}
+
+    for dirpath, _, filenames in os.walk(folder_path):
+        for filename in filenames:
+            if filename.endswith(".jsonl"):
+                input_path = os.path.join(dirpath, filename)
+                relative_path = os.path.relpath(input_path, folder_path)
+
+                print(f"\n{'='*80}")
+                print(f"Processing: {relative_path}")
+                print(f"{'='*80}")
+
+                statistics = evaluate_single_file(input_path)
+                all_results[relative_path] = {
+                    "overall_accuracy": statistics["overall_accuracy"],
+                    "overall_correct": statistics["overall_correct"],
+                    "overall_total": statistics["overall_total"]
+                }
+
+    print("\n" + "="*80)
+    print("Batch Evaluation Summary")
+    print("="*80)
+    for file_path, result in sorted(all_results.items()):
+        print(f"{file_path:<60} | Accuracy: {result['overall_accuracy']:>6.2f}% "
+              f"({result['overall_correct']:.1f}/{result['overall_total']})")
+    print("="*80 + "\n")
+
+    if output_summary:
+        with open(output_summary, 'w', encoding='utf-8') as f:
+            json.dump(all_results, f, ensure_ascii=False, indent=2)
+        print(f"Summary saved to {output_summary}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="LooGLE-v2 Evaluation Script")
+    parser.add_argument("--input_path", type=str, required=True,
+                       help="Path to prediction result file (jsonl) or folder for batch mode")
+    parser.add_argument("--output_json", type=str, default=None,
+                       help="Optional: save results to JSON file")
+    parser.add_argument("--batch", action="store_true",
+                       help="Enable batch mode to evaluate all .jsonl files in folder")
+
+    args = parser.parse_args()
+
+    if args.batch:
+        evaluate_batch(args.input_path, args.output_json)
+    else:
+        evaluate_single_file(args.input_path, args.output_json)
 
 
 if __name__ == "__main__":

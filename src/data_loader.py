@@ -1,4 +1,5 @@
 import json
+import os
 from datasets import load_dataset
 from typing import List, Dict
 
@@ -9,8 +10,11 @@ class DataLoader:
     def load(source, split='test'):
         if source.endswith('.jsonl'):
             return DataLoader._load_jsonl(source)
-        else:
-            return DataLoader._load_hf_dataset(source, split)
+        if os.path.isdir(source):
+            candidate = os.path.join(source, f"{split}.jsonl")
+            if os.path.exists(candidate):
+                return DataLoader._load_jsonl(candidate)
+        return DataLoader._load_hf_dataset(source, split)
 
     @staticmethod
     def _load_jsonl(file_path):
