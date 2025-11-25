@@ -20,7 +20,7 @@ except ImportError:
 from src.answer_extractor import AnswerExtractor
 from src.evaluator import Evaluator
 from src.data_loader import DataLoader, CacheManager
-from src.utils import format_prompt, load_model_config
+from src.utils import format_prompt, load_model_config, format_cot_second_prompt
 
 
 class TransformersLLMClient:
@@ -178,12 +178,27 @@ class TransformersLLMClient:
 
 
 def predict_single_item(data, llm_client, tokenizer, model_path, max_len,
-                        with_context, max_new_tokens, extractor, evaluator):
-    prompt = format_prompt(data, tokenizer, model_path, max_len, with_context)
+                        with_context, max_new_tokens, extractor, evaluator,
+                        use_cot=False, use_rag=False, rag_topk=5):
+    prompt_result = format_prompt(
+        data, tokenizer, model_path, max_len, with_context, use_cot, use_rag, rag_topk
+    )
 
-    response = llm_client.query(prompt, temperature=0.1, max_tokens=max_new_tokens)
-    if not response:
-        return None
+    if use_cot:
+        prompt, removed_part = prompt_result
+        first_response = llm_client.query(prompt, temperature=0.1, max_tokens=4096)
+        if not first_response:
+            return None
+
+        second_prompt = format_cot_second_prompt(first_response, removed_part)
+        response = llm_client.query(second_prompt, temperature=0.1, max_tokens=max_new_tokens)
+        if not response:
+            return None
+    else:
+        prompt = prompt_result
+        response = llm_client.query(prompt, temperature=0.1, max_tokens=max_new_tokens)
+        if not response:
+            return None
 
     pred_answer = extractor.extract(response.strip(), data['task'], data['source'])
 
@@ -199,6 +214,19 @@ def predict_single_item(data, llm_client, tokenizer, model_path, max_len,
     result['judge'] = evaluator.judge(pred_answer, data['answer'], data['task'], data['source'])
 
     return result
+
+
+def load_rag_contexts(path):
+    contexts = {}
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                record = json.loads(line)
+                if "id" in record and "context_rag" in record:
+                    contexts[record["id"]] = record["context_rag"]
+            except Exception:
+                continue
+    return contexts
 
 
 def process_batch(dataset, args, output_file):
@@ -226,7 +254,8 @@ def process_batch(dataset, args, output_file):
         for data in tqdm(dataset):
             result = predict_single_item(
                 data, llm_client, tokenizer, model_path, max_len,
-                args.with_context, args.max_new_tokens, extractor, evaluator
+                args.with_context, args.max_new_tokens, extractor, evaluator,
+                args.use_cot, args.use_rag, args.rag_topk
             )
 
             if result:
@@ -265,16 +294,37 @@ def main():
     parser.add_argument("--torch_dtype", type=str, default=None,
                        choices=["float16", "bfloat16", "float32"],
                        help="Torch dtype for model weights")
+    parser.add_argument("--use_cot", action="store_true",
+                       help="Enable Chain-of-Thought prompting")
+    parser.add_argument("--use_rag", action="store_true",
+                       help="Enable RAG (use retrieved context)")
+    parser.add_argument("--rag_topk", type=int, default=5,
+                       help="Number of top-k context chunks for RAG")
+    parser.add_argument("--rag_context", type=str, default=None,
+                       help="Optional path to context_rag jsonl produced by rag_preprocess.py")
 
     args = parser.parse_args()
 
     os.makedirs(args.save_dir, exist_ok=True)
 
     suffix = "_no_context" if args.with_context == 0 else ""
+    if args.use_cot:
+        suffix += "_cot"
+    if args.use_rag:
+        suffix += f"_rag_top{args.rag_topk}"
     output_file = os.path.join(args.save_dir, f"{args.model}{suffix}.jsonl")
 
     print("Loading dataset...")
     data_list = DataLoader.load(args.data_dir)
+
+    if args.use_rag and args.rag_context:
+        rag_contexts = load_rag_contexts(args.rag_context)
+        hit = 0
+        for item in data_list:
+            if item["id"] in rag_contexts:
+                item["context_rag"] = rag_contexts[item["id"]]
+                hit += 1
+        print(f"Attached context_rag for {hit}/{len(data_list)} samples from {args.rag_context}")
 
     cached_ids = CacheManager.load_cached_ids(output_file)
     data_list = CacheManager.filter_uncached(data_list, cached_ids)
@@ -307,4 +357,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

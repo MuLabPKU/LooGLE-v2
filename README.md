@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔍 LooGLE v2
+# LooGLE v2
 
 **The official repository of "LooGLE v2: Are LLMs Ready for Real World Long Dependency Challenges?"**
 
@@ -10,10 +10,10 @@
   <a href="https://huggingface.co/datasets/GraphPKU/LooGLE-v2">
     <img src="https://img.shields.io/badge/🤗-Dataset-blue" alt="Dataset">
   </a>
-  <a href="#">
+  <a href="https://mulabpku.github.io/LooGLE-v2/">
     <img src="https://img.shields.io/badge/🌐-Website-green" alt="Website">
   </a>
-  <a href="#">
+  <a href="https://arxiv.org/abs/2510.22548">
     <img src="https://img.shields.io/badge/📄-Paper-red" alt="Paper">
   </a>
   <a href="https://opensource.org/licenses/MIT">
@@ -39,8 +39,8 @@ LooGLE v2 is a comprehensive benchmark designed to evaluate large language model
 
 ```bash
 # Create environment with Python 3.10
-conda create -n loogle python=3.10
-conda activate loogle
+conda create -n loogle-v2 python=3.10
+conda activate loogle-v2
 
 # Install dependencies
 pip install -r requirements.txt
@@ -51,8 +51,6 @@ pip install flash-attn==2.6.3 --no-build-isolation
 # Or you can download flash_attn-2.6.3-cp310-cp310-linux_x86_64.whl
 pip install flash_attn-2.6.3-cp310-cp310-linux_x86_64.whl
 ```
-
-> ⚠️ **Note**: Flash Attention requires CUDA-capable GPU
 
 ---
 
@@ -73,10 +71,7 @@ hf download MuLabPKU/LooGLE-v2 --path ./datasets/LooGLE-v2
 
 ### ⚙️ Configuration
 
-#### 1. Start vLLM Server
-
-First, launch a vLLM server with your model:
-
+**vLLM server (for `predict.py`):**
 ```bash
 python -m vllm.entrypoints.openai.api_server \
   --model path/to/your/model \
@@ -84,10 +79,7 @@ python -m vllm.entrypoints.openai.api_server \
   --max-model-len 131072
 ```
 
-#### 2. Configure Model Settings
-
-Edit `config/models.jsonl` to add your model configuration:
-
+**Model entry (`config/models.jsonl`, shared by both scripts):**
 ```json
 {
   "name": "your-model-name",
@@ -98,15 +90,36 @@ Edit `config/models.jsonl` to add your model configuration:
 }
 ```
 
-> 💡 **Tip**: Make sure the `base_url` matches your vLLM server port
+Transformers mode (`predict_transformers.py`) does not need a server; it still reuses `name/model/max_len` from this config. Ensure `base_url` matches your vLLM port when using the server route.
+
+### 🔎 Pre-compute RAG Contexts (optional)
+
+If you plan to run `--use_rag`, first generate `context_rag` with the preprocessor:
+
+```bash
+python rag_preprocess.py \
+  --input_path ./datasets/LooGLE-v2 \
+  --split test \
+  --output_path ./datasets/LooGLE-v2/test_rag.jsonl \
+  --embedding_model THUDM/LongCite-glm4-9b \
+  --devices 0,1
+```
+
+For multi-turn refinement (using a generator model to iteratively improve retrieval queries):
+
+```bash
+python rag_preprocess.py \
+  --input_path ./datasets/LooGLE-v2 \
+  --split test \
+  --output_path ./datasets/LooGLE-v2/test_rag_multi.jsonl \
+  --embedding_model THUDM/LongCite-glm4-9b \
+  --generator_model meta-llama/Llama-3.1-8B \
+  --multi_turn --devices 0,1
+```
 
 ### 🎯 Running Predictions
 
-We provide two prediction scripts:
-
-#### Option 1: Using vLLM Server (predict.py)
-
-This method requires a running vLLM server and uses OpenAI-compatible API:
+#### Option A: vLLM server (`predict.py`)
 
 ```bash
 python predict.py \
@@ -116,23 +129,7 @@ python predict.py \
   --max_new_tokens 512
 ```
 
-<details>
-<summary><b>📝 Parameters</b></summary>
-
-| Parameter | Description |
-|-----------|-------------|
-| `--model` | Model name (must match config) |
-| `--data_dir` | Path to dataset |
-| `--save_dir` | Output directory |
-| `--with_context` | Include context (1) or not (0) |
-| `--n_proc` | Number of parallel processes |
-| `--max_new_tokens` | Maximum generation length |
-
-</details>
-
-#### Option 2: Using Transformers Directly (predict_transformers.py)
-
-This method directly loads models using the transformers library, without requiring a vLLM server:
+#### Option B: Transformers local (`predict_transformers.py`)
 
 ```bash
 python predict_transformers.py \
@@ -142,73 +139,41 @@ python predict_transformers.py \
   --max_new_tokens 512
 ```
 
-**Key Differences:**
+Optional prompting flags (both scripts):
+- `--use_cot` for Chain-of-Thought
+- `--use_rag --rag_topk <k> --rag_context <path>` to inject precomputed `context_rag` (default file: `./datasets/LooGLE-v2/test_rag.jsonl`)
 
-| Feature | predict.py | predict_transformers.py |
-|---------|------------|------------------------|
-| Requires vLLM Server | ✅ Yes | ❌ No |
-| Requires API Key | ✅ Yes | ❌ No |
-| Memory Usage | Low (server-side) | High (local) |
-| Inference Speed | Fast (vLLM optimized) | Moderate |
-| Quantization Support | Server-side config | ✅ Supported |
-| Offline Usage | ❌ No | ✅ Yes |
+<details>
+<summary><b>📝 Core parameters (both options)</b></summary>
 
-**Additional Parameters for predict_transformers.py:**
+| Flag | Purpose |
+|------|---------|
+| `--model` | Must match `config/models.jsonl` name |
+| `--data_dir` | Dataset path (jsonl or HF) |
+| `--save_dir` | Output directory |
+| `--with_context` | 1/0 to include original context |
+| `--n_proc` | Parallel processes |
+| `--max_new_tokens` | Generation length |
+| `--use_cot` | Enable Chain-of-Thought |
+| `--use_rag` | Use retrieved context |
+| `--rag_topk` | How many retrieved chunks to keep |
+| `--rag_context` | Path to `id + context_rag` jsonl |
 
-| Parameter | Description |
-|-----------|-------------|
-| `--device` | Device to use (cuda/cpu, default: auto-detect) |
-| `--load_in_8bit` | Use 8-bit quantization (saves GPU memory) |
-| `--load_in_4bit` | Use 4-bit quantization (saves GPU memory) |
-| `--torch_dtype` | Model weight dtype (float16/bfloat16/float32) |
+</details>
 
-**Examples:**
+<details>
+<summary><b>🖥️ Transformers-only flags</b></summary>
 
-```bash
-# Basic usage with GPU
-python predict_transformers.py \
-  --model Qwen2.5-7B-Instruct-1M \
-  --data_dir ./datasets/LooGLE-v2 \
-  --save_dir ./results
+| Flag | Purpose |
+|------|---------|
+| `--device` | Target device (cuda/cpu, auto by default) |
+| `--load_in_8bit` | 8-bit quantization (needs bitsandbytes) |
+| `--load_in_4bit` | 4-bit quantization (needs bitsandbytes) |
+| `--torch_dtype` | Weight dtype: float16/bfloat16/float32 |
 
-# Use 4-bit quantization to save GPU memory
-python predict_transformers.py \
-  --model Qwen2.5-7B-Instruct-1M \
-  --data_dir ./datasets/LooGLE-v2 \
-  --save_dir ./results \
-  --load_in_4bit
+> 💡 Install `bitsandbytes` to enable quantization: `pip install bitsandbytes`
 
-# Use CPU (slower but no GPU required)
-python predict_transformers.py \
-  --model Qwen2.5-7B-Instruct-1M \
-  --data_dir ./datasets/LooGLE-v2 \
-  --save_dir ./results \
-  --device cpu
-```
-
-> 💡 **Note**: For quantization, install `bitsandbytes`: `pip install bitsandbytes`
-
-**Supported Models:**
-
-The script automatically detects model types and applies appropriate prompt formats:
-- **Llama series**: Llama-3.1, Llama-3.3, etc.
-- **Qwen series**: Qwen2.5, QwQ, etc.
-- **GLM series**: GLM-4, etc.
-- **Phi series**: Phi-3, etc.
-- **Mistral series**: Mistral-7B, etc.
-- **Other models**: Automatically uses chat template or default format
-
-**Memory Optimization Tips:**
-
-1. **Use quantization**: `--load_in_4bit` or `--load_in_8bit` significantly reduces GPU memory usage
-2. **Use float16**: `--torch_dtype float16` reduces memory and speeds up inference
-3. **Single process**: Avoid `--n_proc > 1` as each process loads the model separately
-
-**Troubleshooting:**
-
-- **Out of memory**: Use `--load_in_4bit` or `--device cpu`
-- **Model loading fails**: Check model path, ensure internet connection (for first-time download), verify disk space
-- **Poor generation quality**: Check prompt format (auto-detected), adjust `--max_new_tokens`, verify model supports chat format
+</details>
 
 ### 📈 Evaluation
 
@@ -219,6 +184,14 @@ python evaluate.py --input_path ./results/your-model-name.jsonl
 ```
 
 This outputs per-task accuracy for each domain and overall accuracy.
+
+For batch evaluation (e.g., multiple runs with CoT/RAG or no-context variants):
+
+```bash
+python evaluate.py --input_path ./results --batch --output_json ./results/summary.json
+```
+
+This scans a folder for `.jsonl` files, reports each file’s accuracy, and optionally saves a summary.
 
 ---
 
@@ -236,6 +209,7 @@ LooGLE-v2/
 │   └── models.jsonl           # Model configurations
 ├── predict.py                  # Prediction script (vLLM server)
 ├── predict_transformers.py     # Prediction script (direct transformers)
+├── rag_preprocess.py           # RAG context preprocessing
 ├── evaluate.py                 # Evaluation script
 └── requirements.txt            # Dependencies
 ```
@@ -282,4 +256,3 @@ If you use LooGLE v2 in your research, please cite:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
