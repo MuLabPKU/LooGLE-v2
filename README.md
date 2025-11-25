@@ -102,6 +102,12 @@ Edit `config/models.jsonl` to add your model configuration:
 
 ### 🎯 Running Predictions
 
+We provide two prediction scripts:
+
+#### Option 1: Using vLLM Server (predict.py)
+
+This method requires a running vLLM server and uses OpenAI-compatible API:
+
 ```bash
 python predict.py \
   --model your-model-name \
@@ -123,6 +129,86 @@ python predict.py \
 | `--max_new_tokens` | Maximum generation length |
 
 </details>
+
+#### Option 2: Using Transformers Directly (predict_transformers.py)
+
+This method directly loads models using the transformers library, without requiring a vLLM server:
+
+```bash
+python predict_transformers.py \
+  --model your-model-name \
+  --data_dir ./datasets/LooGLE-v2 \
+  --save_dir ./results \
+  --max_new_tokens 512
+```
+
+**Key Differences:**
+
+| Feature | predict.py | predict_transformers.py |
+|---------|------------|------------------------|
+| Requires vLLM Server | ✅ Yes | ❌ No |
+| Requires API Key | ✅ Yes | ❌ No |
+| Memory Usage | Low (server-side) | High (local) |
+| Inference Speed | Fast (vLLM optimized) | Moderate |
+| Quantization Support | Server-side config | ✅ Supported |
+| Offline Usage | ❌ No | ✅ Yes |
+
+**Additional Parameters for predict_transformers.py:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `--device` | Device to use (cuda/cpu, default: auto-detect) |
+| `--load_in_8bit` | Use 8-bit quantization (saves GPU memory) |
+| `--load_in_4bit` | Use 4-bit quantization (saves GPU memory) |
+| `--torch_dtype` | Model weight dtype (float16/bfloat16/float32) |
+
+**Examples:**
+
+```bash
+# Basic usage with GPU
+python predict_transformers.py \
+  --model Qwen2.5-7B-Instruct-1M \
+  --data_dir ./datasets/LooGLE-v2 \
+  --save_dir ./results
+
+# Use 4-bit quantization to save GPU memory
+python predict_transformers.py \
+  --model Qwen2.5-7B-Instruct-1M \
+  --data_dir ./datasets/LooGLE-v2 \
+  --save_dir ./results \
+  --load_in_4bit
+
+# Use CPU (slower but no GPU required)
+python predict_transformers.py \
+  --model Qwen2.5-7B-Instruct-1M \
+  --data_dir ./datasets/LooGLE-v2 \
+  --save_dir ./results \
+  --device cpu
+```
+
+> 💡 **Note**: For quantization, install `bitsandbytes`: `pip install bitsandbytes`
+
+**Supported Models:**
+
+The script automatically detects model types and applies appropriate prompt formats:
+- **Llama series**: Llama-3.1, Llama-3.3, etc.
+- **Qwen series**: Qwen2.5, QwQ, etc.
+- **GLM series**: GLM-4, etc.
+- **Phi series**: Phi-3, etc.
+- **Mistral series**: Mistral-7B, etc.
+- **Other models**: Automatically uses chat template or default format
+
+**Memory Optimization Tips:**
+
+1. **Use quantization**: `--load_in_4bit` or `--load_in_8bit` significantly reduces GPU memory usage
+2. **Use float16**: `--torch_dtype float16` reduces memory and speeds up inference
+3. **Single process**: Avoid `--n_proc > 1` as each process loads the model separately
+
+**Troubleshooting:**
+
+- **Out of memory**: Use `--load_in_4bit` or `--device cpu`
+- **Model loading fails**: Check model path, ensure internet connection (for first-time download), verify disk space
+- **Poor generation quality**: Check prompt format (auto-detected), adjust `--max_new_tokens`, verify model supports chat format
 
 ### 📈 Evaluation
 
@@ -148,7 +234,8 @@ LooGLE-v2/
 │   └── utils.py               # Common utilities
 ├── config/
 │   └── models.jsonl           # Model configurations
-├── predict.py                  # Main prediction script
+├── predict.py                  # Prediction script (vLLM server)
+├── predict_transformers.py     # Prediction script (direct transformers)
 ├── evaluate.py                 # Evaluation script
 └── requirements.txt            # Dependencies
 ```
