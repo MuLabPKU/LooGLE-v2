@@ -7,7 +7,7 @@
 *NeurIPS DB Track 2025*
 
 <div>
-  <a href="https://huggingface.co/datasets/GraphPKU/LooGLE-v2">
+  <a href="https://huggingface.co/datasets/MulabPKU/LooGLE-v2">
     <img src="https://img.shields.io/badge/🤗-Dataset-blue" alt="Dataset">
   </a>
   <a href="https://mulabpku.github.io/LooGLE-v2/">
